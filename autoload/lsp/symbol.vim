@@ -301,6 +301,19 @@ def RefPopupCallback(lspserver: dict<any>, refs: list<dict<any>>,
   endif
 enddef
 
+# Display the references using fzf.vim
+def FzfReferences(lspserver: dict<any>, refs: list<dict<any>>, peekSymbol: bool)
+  var sourceItems: list<string> = []
+  for loc in refs
+    var fname: string = fnamemodify(util.LspUriToFile(loc.uri), ':.')
+    var lnum: number = loc.range.start.line + 1
+    var char: number = loc.range.start.character + 1
+    var text: string = system($'sed -n {lnum}p {fname}')
+    sourceItems->add($'{fname}:{lnum}:{char}:{text}')
+  endfor
+  fzf#run(fzf#wrap(fzf#vim#with_preview({placeholder: "{1,2}", source: sourceItems, options: "--delimiter=: --with-nth=1,2,4 --header='[Symbol] arg' --preview-window='+{2}-10' --reverse --prompt 'References> '", window: {width: 0.9, height: 0.9}})))
+enddef
+
 # Display the references in a popup menu.  Display the corresponding file in
 # an another popup window.
 def PeekReferences(lspserver: dict<any>, refs: list<dict<any>>)
@@ -349,6 +362,11 @@ enddef
 
 # Display or peek symbol references in a location list
 export def ShowReferences(lspserver: dict<any>, refs: list<dict<any>>, peekSymbol: bool)
+  if true
+    FzfReferences(lspserver, refs, peekSymbol)
+    return
+  endif
+
   if peekSymbol
     PeekReferences(lspserver, refs)
     return
